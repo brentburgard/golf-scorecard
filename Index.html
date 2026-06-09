@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>The Novice's Golf Scorecard</title>
+<style>
+  :root {
+    --navy:#0A2A5E; --orange:#F58025; --blue:#0077C8; --red:#D7282F;
+    --green:#5C8A3A; --fairway:#6B8E3D; --cream:#F7F3E8; --paper:#FBF8EF;
+    --ink:#1A1A1A; --ledger:#E8E2D0; --muted:#888;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--paper);color:var(--ink);min-height:100vh}
+  .serif{font-family:Georgia,'Times New Roman',serif}
+  button{cursor:pointer;font-family:inherit}
+  input{font-family:inherit}
+
+  /* Header */
+  #header{background:var(--cream);border-bottom:2px solid var(--navy);padding:12px 16px}
+  #header-inner{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  #header-logo{width:38px;height:38px;border-radius:50%;background:var(--navy);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  #header-logo svg{color:var(--orange)}
+  #header-title{font-size:20px;font-weight:700;color:var(--navy);line-height:1.2}
+  #header-sub{font-size:11px;color:var(--muted)}
+  #save-status{font-size:11px;white-space:nowrap;color:var(--green)}
+
+  /* Nav */
+  #back-btn{background:none;border:none;color:var(--navy);padding:6px;border-radius:50%;display:none;align-items:center;justify-content:center}
+  #back-btn:hover{background:white}
+
+  /* Main */
+  #main{max-width:1100px;margin:0 auto;padding:16px 16px 80px}
+
+  /* Buttons */
+  .btn{display:inline-flex;align-items:center;gap:6px;padding:10px 16px;border-radius:8px;font-weight:600;font-size:14px;border:none;transition:background .15s}
+  .btn-primary{background:var(--navy);color:white}.btn-primary:hover{background:#14377a}
+  .btn-accent{background:var(--orange);color:white}.btn-accent:hover{background:#d96d18}
+  .btn-danger{background:none;color:var(--red);border:none;font-weight:600;font-size:13px;display:inline-flex;align-items:center;gap:6px;padding:8px 12px;border-radius:6px}
+  .btn-danger:hover{background:#fff0f0}
+  .btn-sm{padding:6px 12px;font-size:13px}
+  .btn-ghost{background:none;border:1.5px solid var(--ledger);color:var(--navy)}.btn-ghost:hover{border-color:var(--navy)}
+  .btn-icon{background:none;border:none;padding:6px;border-radius:6px;color:var(--muted);display:inline-flex;align-items:center}
+  .btn-icon:hover{background:var(--ledger);color:var(--navy)}
+
+  /* Cards */
+  .card{background:white;border:1px solid var(--ledger);border-radius:8px;overflow:hidden}
+  .card-header{background:var(--navy);color:white;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+  .card-header-green{background:var(--fairway);color:white;padding:10px 16px;display:flex;align-items:center;gap:8px;font-weight:700}
+  .card-body{padding:16px}
+
+  /* Tabs */
+  #tab-bar{display:flex;gap:4px;background:var(--cream);border:1px solid var(--ledger);border-radius:8px;padding:4px;margin-bottom:20px}
+  .tab-btn{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:6px;font-weight:600;font-size:13px;border:none;background:transparent;color:var(--navy);transition:all .15s}
+  .tab-btn.active{background:var(--navy);color:white}
+  .tab-btn:hover:not(.active){background:white}
+
+  /* Home grid */
+  #tournament-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px;margin-bottom:32px}
+  .t-card{background:white;border:2px solid var(--ledger);border-radius:8px;overflow:hidden;cursor:pointer;transition:box-shadow .15s}
+  .t-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08)}
+  .t-card-head{background:var(--navy);color:white;padding:12px 16px;display:flex;align-items:center;justify-content:space-between}
+  .t-card-body{padding:16px}
+  .t-meta{display:flex;gap:16px;font-size:12px;color:#666;margin-bottom:10px;flex-wrap:wrap}
+  .t-leader{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;background:var(--cream);font-size:13px}
+
+  /* Empty state */
+  #empty-state{text-align:center;padding:64px 32px;border-radius:8px;background:var(--cream);border:2px dashed var(--ledger)}
+
+  /* Legend */
+  #legend{margin-top:32px;padding:20px;border-radius:8px;background:white;border:1px solid var(--ledger)}
+  .legend-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;font-size:13px;color:#555;margin-top:10px}
+  .legend-cat{font-weight:600;margin-bottom:6px}
+
+  /* Leaderboard table */
+  .lb-table{width:100%;border-collapse:collapse;font-size:13px}
+  .lb-table th{padding:8px 10px;background:var(--cream);color:var(--navy);font-weight:600;white-space:nowrap}
+  .lb-table td{padding:10px;border-top:1px solid var(--ledger)}
+  .lb-table th:first-child,.lb-table td:first-child{padding-left:14px}
+  .lb-right{text-align:right}
+
+  /* Chips */
+  .chip{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:11px;font-weight:700}
+  .chip-alb{background:#FFD700;color:#5A4A00}
+  .chip-eagle{background:var(--orange);color:white}
+  .chip-birdie{background:var(--green);color:white}
+  .chip-par{background:var(--ledger);color:var(--navy)}
+  .chip-bogey{background:#E8D5C4;color:#6B4423}
+  .chip-over{background:#F5C6C6;color:#8B1A1A}
+
+  /* Scoring */
+  #hole-nav{display:flex;align-items:center;justify-content:space-between;background:var(--cream);border:1px solid var(--ledger);border-radius:8px;padding:12px}
+  #hole-nav .nav-center{text-align:center}
+  #hole-num{font-size:40px;font-weight:700;color:var(--navy);line-height:1;font-family:Georgia,serif}
+  .nav-btn{background:none;border:none;color:var(--navy);padding:8px;border-radius:50%;font-size:20px;display:flex;align-items:center}
+  .nav-btn:hover{background:white}
+  .nav-btn:disabled{opacity:.3;cursor:default}
+
+  .player-row{padding:16px;border-top:1px solid var(--ledger)}
+  .player-row:first-child{border-top:none}
+  .player-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .score-grid{display:grid;grid-template-columns:1fr 2fr;gap:12px;align-items:center}
+  .stroke-wrap{display:flex;align-items:center;gap:4px}
+  .stroke-btn{width:36px;height:36px;border-radius:6px;background:var(--ledger);color:var(--navy);border:none;font-size:20px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  .stroke-input{flex:1;text-align:center;font-size:18px;font-weight:700;background:transparent;border:1px solid var(--ledger);border-radius:6px;padding:6px 4px;color:var(--ink)}
+  .stroke-input:focus{outline:2px solid var(--orange);border-color:var(--orange)}
+  .tracking{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+  .pill{display:inline-flex;align-items:center;gap:4px;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:600;border:1.5px solid var(--ledger);background:white;color:#555;cursor:pointer;transition:all .15s}
+  .pill:hover{border-color:var(--navy)}
+  .pill.on-fw{background:var(--green);color:white;border-color:var(--green)}
+  .pill.on-gir{background:var(--green);color:white;border-color:var(--green)}
+  .pill.on-water{background:var(--blue);color:white;border-color:var(--blue)}
+  .pill.on-sand{background:#C9A961;color:white;border-color:#C9A961}
+  .pill.on-ob{background:var(--red);color:white;border-color:var(--red)}
+
+  /* Progress */
+  #progress-wrap{background:white;border:1px solid var(--ledger);border-radius:8px;padding:16px}
+  .prog-row{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .prog-name{font-size:12px;font-weight:600;color:var(--navy);width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0}
+  .prog-holes{display:flex;gap:2px;overflow-x:auto}
+  .prog-hole{flex-shrink:0;width:24px;height:24px;border-radius:4px;font-size:10px;font-weight:700;border:1px solid var(--ledger);display:flex;align-items:center;justify-content:center;cursor:pointer;color:#999;background:#F0EBDD}
+  .prog-hole.pos{background:var(--green);color:white;border-color:var(--green)}
+  .prog-hole.neg{background:var(--red);color:white;border-color:var(--red)}
+  .prog-hole.zero{background:var(--ledger);color:var(--navy);border-color:var(--ledger)}
+
+  /* Setup */
+  .field-group{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+  .field label{display:block;font-size:11px;font-weight:600;color:#666;margin-bottom:4px}
+  .field input{width:100%;padding:8px 12px;border-radius:6px;border:1px solid var(--ledger);font-size:14px}
+  .field input:focus{outline:2px solid var(--orange);border-color:var(--orange)}
+  .pars-grid{display:grid;grid-template-columns:repeat(9,1fr);gap:6px}
+  .par-cell{text-align:center}
+  .par-cell label{font-size:10px;font-weight:600;color:#888;display:block}
+  .par-cell input{width:100%;text-align:center;font-weight:700;padding:6px 2px;border-radius:6px;border:1px solid var(--ledger);color:var(--navy);font-size:14px}
+
+  /* Foursome editor */
+  .fs-editor{border:1px solid var(--ledger);border-radius:8px;overflow:hidden;background:white;margin-bottom:12px}
+  .fs-head{background:var(--fairway);color:white;padding:10px 14px;display:flex;align-items:center;gap:8px}
+  .fs-name-input{background:transparent;border:none;border-bottom:1px solid rgba(255,255,255,.3);padding:2px 4px;font-weight:700;flex:1;color:white;outline:none;font-size:14px;font-family:inherit}
+  .fs-body{padding:12px;display:flex;flex-direction:column;gap:8px}
+  .player-edit{display:flex;align-items:center;gap:8px}
+  .player-edit input{flex:1;padding:8px 12px;border-radius:6px;border:1px solid var(--ledger);font-size:14px}
+  .add-player-btn{width:100%;padding:8px;border-radius:6px;border:2px dashed var(--ledger);background:transparent;font-weight:600;font-size:13px;color:var(--navy);display:flex;align-items:center;justify-content:center;gap:6px}
+  .add-player-btn:hover{background:var(--cream)}
+
+  /* Foursome selector pills */
+  .fs-selector{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px}
+  .fs-pill{padding:6px 14px;border-radius:999px;font-size:13px;font-weight:600;border:2px solid var(--ledger);background:white;color:var(--navy);cursor:pointer;transition:all .15s}
+  .fs-pill.active{background:var(--navy);color:white;border-color:var(--navy)}
+
+  /* Points color */
+  .pts-pos{color:var(--green);font-weight:700}
+  .pts-neg{color:var(--red);font-weight:700}
+  .pts-zero{color:var(--ink)}
+
+  /* Section titles */
+  .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .section-title{font-family:Georgia,serif;font-size:18px;font-weight:700;color:var(--navy)}
+
+  /* Utilities */
+  .gap-v{display:flex;flex-direction:column;gap:20px}
+  .mt8{margin-top:8px}
+  .mt12{margin-top:12px}
+  .mt16{margin-top:16px}
+  .mt24{margin-top:24px}
+  .w-full{width:100%}
+  .scroll-x{overflow-x:auto}
+
+  /* Position badge */
+  .pos-gold{color:#FFD700}
+  .pos-silver{color:#999}
+  .pos-bronze{color:#CD7F32}
+
+  @media(max-width:480px){
+    .score-grid{grid-template-columns:1fr}
+    #header-title{font-size:16px}
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div id="header-inner">
+    <div style="display:flex;align-items:center;gap:10px">
+      <button id="back-btn" onclick="goHome()" aria-label="Back">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 5l-7 7 7 7"/></svg>
+      </button>
+      <div id="header-logo">
+        <svg width="20" height="20" fill="none" stroke="#F58025" stroke-width="2" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+      </div>
+      <div>
+        <div id="header-title" class="serif">The Novice's Scorecard</div>
+        <div id="header-sub">Foursome scoring, points &amp; tournaments</div>
+      </div>
+    </div>
+    <div id="save-status">✓ Saved</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main"></div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+const STORAGE_KEY = 'golf_app_v2';
+let state = { tournaments: [] };
+let currentView = { screen: 'home' };
+let saveTimer = null;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+const uid = () => Math.random().toString(36).slice(2,9) + Date.now().toString(36);
+const emptyScore = () => ({ strokes:0, fairway:false, gir:false, water:0, sand:0, ob:0 });
+const makePlayer = (name='') => ({ id:uid(), name, scores: Array.from({length:18}, emptyScore) });
+const makeFoursome = (name='Group 1') => ({ id:uid(), name, players:[makePlayer('Player 1')] });
+const DEFAULT_PARS = [4,4,3,5,4,4,3,4,5,4,4,3,5,4,4,3,4,5];
+const makeTournament = (name) => ({
+  id:uid(), name, course:'', date:new Date().toISOString().slice(0,10),
+  pars:[...DEFAULT_PARS], foursomes:[makeFoursome('Group 1')]
+});
+
+function holeResult(strokes, par, s) {
+  if (!strokes || !par) return { points:0, label:'', cls:'' };
+  const diff = strokes - par;
+  let base=0, label='', cls='';
+  if (diff<=-3){base=12;label='ALB';cls='alb';}
+  else if(diff===-2){base=8;label='EAG';cls='eagle';}
+  else if(diff===-1){base=4;label='BIR';cls='birdie';}
+  else if(diff===0){label='PAR';cls='par';}
+  else if(diff===1){label='BGY';cls='bogey';}
+  else if(diff===2){label='+2';cls='over';}
+  else{label=`+${diff}`;cls='over';}
+  const bonus=(s.fairway?2:0)+(s.gir?3:0);
+  const penalty=-(s.water||0)-2*(s.sand||0)-3*(s.ob||0);
+  return { points:base+bonus+penalty, label, cls };
+}
+
+function playerTotals(player, pars) {
+  let total=0,back9=0,front9=0,hazards=0,strokes=0,birdies=0,eagles=0;
+  player.scores.forEach((s,i)=>{
+    const r = holeResult(s.strokes, pars[i], s);
+    total+=r.points;
+    if(i<9) front9+=r.points; else back9+=r.points;
+    hazards+=(s.water||0)+(s.sand||0)+(s.ob||0);
+    if(s.strokes) strokes+=s.strokes;
+    if(r.cls==='birdie') birdies++;
+    if(r.cls==='eagle'||r.cls==='alb') eagles++;
+  });
+  const holesPlayed = player.scores.filter(s=>s.strokes>0).length;
+  return {total,front9,back9,hazards,strokes,birdies,eagles,holesPlayed};
+}
+
+function rankTournament(t) {
+  const all=[];
+  t.foursomes.forEach(f=>f.players.forEach(p=>{
+    all.push({player:p, foursome:f.name, ...playerTotals(p,t.pars)});
+  }));
+  return all.sort((a,b)=>b.total!==a.total?b.total-a.total:b.back9!==a.back9?b.back9-a.back9:a.hazards-b.hazards);
+}
+
+function rankFoursome(f, pars) {
+  return f.players.map(p=>({player:p,...playerTotals(p,pars)}))
+    .sort((a,b)=>b.total!==a.total?b.total-a.total:b.back9!==a.back9?b.back9-a.back9:a.hazards-b.hazards);
+}
+
+// ─── Storage ──────────────────────────────────────────────────────────────────
+function loadState() {
+  try { const s=localStorage.getItem(STORAGE_KEY); if(s) state=JSON.parse(s); } catch(e){}
+}
+function saveState() {
+  setSaveStatus(false);
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{
+    try { localStorage.setItem(STORAGE_KEY,JSON.stringify(state)); } catch(e){}
+    setSaveStatus(true);
+  }, 300);
+}
+function setSaveStatus(saved) {
+  const el = document.getElementById('save-status');
+  if(el) el.innerHTML = saved ? '✓ Saved' : '<span style="color:#F58025">Saving...</span>';
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+function setView(v) {
+  currentView = v;
+  const backBtn = document.getElementById('back-btn');
+  const htitle = document.getElementById('header-title');
+  const hsub = document.getElementById('header-sub');
+  if(v.screen==='home'){
+    backBtn.style.display='none';
+    htitle.textContent="The Novice's Scorecard";
+    hsub.textContent='Foursome scoring, points & tournaments';
+  } else {
+    backBtn.style.display='flex';
+    const t=getTournament(v.tournamentId);
+    if(t){htitle.textContent=t.name;hsub.textContent=`${t.course||'Course TBD'} · ${t.date}`;}
+  }
+  render();
+}
+function goHome(){setView({screen:'home'});}
+function getTournament(id){return state.tournaments.find(t=>t.id===id);}
+function mutateTournament(id, fn){
+  state.tournaments=state.tournaments.map(t=>t.id===id?fn(t):t);
+  saveState();
+}
+
+// ─── Icons (inline SVG strings) ───────────────────────────────────────────────
+const I = {
+  trophy:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg>`,
+  flag:`<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>`,
+  users:`<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  cal:`<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  trash:`<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`,
+  plus:`<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>`,
+  chevL:`<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>`,
+  chevR:`<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>`,
+  x:`<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+  clip:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>`,
+  edit:`<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>`,
+  crown:`<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 20h20"/><path d="M5 20V8l7 4 5-8 5 8-7-4-5 8-5-8z"/></svg>`,
+  target:`<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>`,
+  drop:`<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>`,
+  mtn:`<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><polygon points="3 20 21 20 12 4 3 20"/></svg>`,
+  wind:`<svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9.59 4.59A2 2 0 1 1 11 8H2m10.59 11.41A2 2 0 1 0 14 16H2m15.73-8.27A2.5 2.5 0 1 1 19.5 12H2"/></svg>`,
+};
+
+// ─── Render Entry ──────────────────────────────────────────────────────────────
+function render() {
+  const main = document.getElementById('main');
+  if(currentView.screen==='home') renderHome(main);
+  else renderTournament(main);
+}
+
+// ─── HOME ─────────────────────────────────────────────────────────────────────
+function renderHome(main) {
+  const ts = [...state.tournaments].sort((a,b)=>(b.date||'').localeCompare(a.date||''));
+  let html = `<div style="padding-top:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+      <h2 class="serif" style="font-size:28px;font-weight:700;color:var(--navy)">Tournaments</h2>
+      <button class="btn btn-accent" onclick="createTournament()">${I.plus} New Tournament</button>
+    </div>`;
+
+  if(!ts.length){
+    html += `<div id="empty-state">
+      <div style="color:var(--orange);margin-bottom:12px">${I.trophy.replace('16','64').replace('16','64')}</div>
+      <h3 class="serif" style="font-size:24px;font-weight:700;color:var(--navy);margin-bottom:8px">Tee it up</h3>
+      <p style="color:#666;max-width:400px;margin:0 auto 20px">Create your first tournament, add foursomes, and start logging scores.</p>
+      <button class="btn btn-primary" onclick="createTournament()">${I.plus} Create Tournament</button>
+    </div>`;
+  } else {
+    html += `<div id="tournament-grid">`;
+    ts.forEach(t=>{
+      const playerCount = t.foursomes.reduce((s,f)=>s+f.players.length,0);
+      const ranking = rankTournament(t);
+      const leader = ranking[0];
+      html += `<div class="t-card" onclick="openTournament('${t.id}')">
+        <div class="t-card-head">
+          <div class="serif" style="font-size:17px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(t.name)}</div>
+          <button class="btn-icon" onclick="event.stopPropagation();deleteTournament('${t.id}')" title="Delete" style="color:rgba(255,255,255,.6)">${I.trash}</button>
+        </div>
+        <div class="t-card-body">
+          <div class="t-meta">
+            <span>${I.cal} ${t.date}</span>
+            <span>${I.users} ${playerCount} players</span>
+            <span>${I.flag} ${t.foursomes.length} group${t.foursomes.length!==1?'s':''}</span>
+          </div>
+          ${leader&&leader.holesPlayed>0?`<div class="t-leader">
+            <span style="color:var(--orange)">${I.crown.replace('18','16').replace('18','16')}</span>
+            <span><strong>${esc(leader.player.name)}</strong> leads with <strong>${leader.total}</strong> pts</span>
+          </div>`:''}
+          ${t.course?`<div style="font-size:12px;font-style:italic;color:#888;margin-top:8px">${esc(t.course)}</div>`:''}
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+
+  html += `<div id="legend">
+    <div class="serif" style="font-size:17px;font-weight:700;color:var(--navy);margin-bottom:10px">Scoring Rules</div>
+    <div class="legend-grid">
+      <div><div class="legend-cat" style="color:var(--green)">Bonuses</div>
+        Fairway hit: <strong>+2</strong><br>GIR: <strong>+3</strong></div>
+      <div><div class="legend-cat" style="color:var(--orange)">Under Par</div>
+        Birdie: <strong>+4</strong><br>Eagle: <strong>+8</strong><br>Albatross: <strong>+12</strong></div>
+      <div><div class="legend-cat" style="color:var(--red)">Hazards</div>
+        Water: <strong>−1</strong><br>Sand: <strong>−2</strong><br>OB: <strong>−3</strong></div>
+    </div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--ledger);font-size:11px;font-style:italic;color:#888">
+      Tiebreakers: Total Points → Back 9 → Fewest Hazards
+    </div>
+  </div></div>`;
+
+  main.innerHTML = html;
+}
+
+// ─── TOURNAMENT SCREEN ────────────────────────────────────────────────────────
+function renderTournament(main) {
+  const t = getTournament(currentView.tournamentId);
+  if(!t){goHome();return;}
+  const tab = currentView.tab || 'leaderboard';
+  let html = `<div style="padding-top:12px">
+    <div id="tab-bar">
+      <button class="tab-btn ${tab==='leaderboard'?'active':''}" onclick="setTab('leaderboard')">${I.trophy} <span>Leaderboard</span></button>
+      <button class="tab-btn ${tab==='scoring'?'active':''}" onclick="setTab('scoring')">${I.clip} <span>Score Entry</span></button>
+      <button class="tab-btn ${tab==='setup'?'active':''}" onclick="setTab('setup')">${I.edit} <span>Setup</span></button>
+    </div>
+    <div id="tab-content">`;
+
+  if(tab==='leaderboard') html += buildLeaderboard(t);
+  else if(tab==='scoring') html += buildScoring(t);
+  else html += buildSetup(t);
+
+  html += `</div></div>`;
+  main.innerHTML = html;
+  if(tab==='scoring') attachScoringEvents(t);
+  if(tab==='setup') attachSetupEvents(t);
+}
+
+function setTab(tab){setView({...currentView,tab,hole:currentView.hole||1});}
+
+// ─── LEADERBOARD ──────────────────────────────────────────────────────────────
+function buildLeaderboard(t) {
+  const ranking = rankTournament(t);
+  const anyScores = ranking.some(r=>r.holesPlayed>0);
+  if(!anyScores) return `<div class="card" style="text-align:center;padding:48px 32px">
+    <div style="color:var(--ledger);margin-bottom:12px">${I.clip.replace('16','48').replace('16','48')}</div>
+    <h3 class="serif" style="font-size:20px;font-weight:700;color:var(--navy);margin-bottom:8px">No scores yet</h3>
+    <p style="color:#666;font-size:14px;margin-bottom:16px">Add scores in Score Entry to populate the leaderboard.</p>
+    <button class="btn btn-accent btn-sm" onclick="setTab('scoring')">${I.clip} Enter Scores</button>
+  </div>`;
+
+  let rows='';
+  ranking.forEach((r,i)=>{
+    const pts=r.total;
+    rows+=`<tr>
+      <td style="padding:10px 14px">${posBadge(i+1)}</td>
+      <td style="padding:10px;font-weight:600;color:var(--navy)">${esc(r.player.name)}</td>
+      <td style="padding:10px;font-size:12px;color:#666">${esc(r.foursome)}</td>
+      <td class="lb-right" style="padding:10px">${r.holesPlayed}/18</td>
+      <td class="lb-right" style="padding:10px">${r.strokes||'–'}</td>
+      <td class="lb-right" style="padding:10px">${r.birdies}</td>
+      <td class="lb-right" style="padding:10px">${r.eagles}</td>
+      <td class="lb-right" style="padding:10px">${r.hazards}</td>
+      <td class="lb-right" style="padding:10px">${r.back9}</td>
+      <td class="lb-right" style="padding:10px;font-size:18px;font-weight:700;color:${i===0?'var(--orange)':'var(--navy)'}">${pts}</td>
+    </tr>`;
+  });
+
+  let fsHTML='';
+  t.foursomes.forEach(f=>{
+    const fr=rankFoursome(f,t.pars);
+    if(!fr.some(r=>r.holesPlayed>0)) return;
+    let frows='';
+    fr.forEach((r,i)=>{
+      frows+=`<tr style="${i>0?'border-top:1px solid var(--ledger)':''}">
+        <td style="padding:10px 14px;width:40px">${posBadge(i+1)}</td>
+        <td style="padding:10px;font-weight:600;color:var(--navy)">${esc(r.player.name)}</td>
+        <td style="padding:10px;text-align:right;font-size:12px;color:#666">${r.holesPlayed}/18 · ${r.strokes||0} strokes</td>
+        <td style="padding:10px;text-align:right;font-weight:700;color:${i===0?'var(--orange)':'var(--navy)'}">${r.total} pts</td>
+      </tr>`;
+    });
+    fsHTML+=`<div class="card" style="margin-top:16px">
+      <div class="card-header-green">${I.users} ${esc(f.name)}</div>
+      <div class="scroll-x"><table class="lb-table"><tbody>${frows}</tbody></table></div>
+    </div>`;
+  });
+
+  return `<div class="gap-v">
+    <div class="card">
+      <div class="card-header">
+        <div class="serif" style="font-size:17px;font-weight:700;display:flex;align-items:center;gap:8px">
+          <span style="color:var(--orange)">${I.trophy.replace('16','18').replace('16','18')}</span> Tournament Leaderboard
+        </div>
+        <div style="font-size:12px;opacity:.8">${ranking.length} players</div>
+      </div>
+      <div class="scroll-x">
+        <table class="lb-table">
+          <thead><tr>
+            <th style="text-align:left">Pos</th><th style="text-align:left">Player</th>
+            <th style="text-align:left">Group</th><th class="lb-right">Holes</th>
+            <th class="lb-right">Strokes</th><th class="lb-right" style="color:var(--green)">BIR</th>
+            <th class="lb-right" style="color:var(--orange)">EAG+</th>
+            <th class="lb-right" style="color:var(--red)">Hzd</th>
+            <th class="lb-right">Back 9</th><th class="lb-right">Total</th>
+          </tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+    </div>
+    ${fsHTML}
+  </div>`;
+}
+
+function posBadge(pos) {
+  if(pos===1) return `<span class="pos-gold">${I.crown}</span>`;
+  if(pos===2) return `<svg width="18" height="18" fill="none" stroke="#C0C0C0" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>`;
+  if(pos===3) return `<svg width="18" height="18" fill="none" stroke="#CD7F32" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>`;
+  return `<strong style="color:var(--navy)">${pos}</strong>`;
+}
+
+// ─── SCORING ──────────────────────────────────────────────────────────────────
+function buildScoring(t) {
+  const fid = currentView.foursomeId || t.foursomes[0]?.id;
+  const f = t.foursomes.find(x=>x.id===fid) || t.foursomes[0];
+  if(!f) return `<div class="card card-body" style="text-align:center;padding:48px">No groups yet. Go to <strong>Setup</strong> to add one.</div>`;
+  const hole = currentView.hole || 1;
+  const par = t.pars[hole-1];
+
+  let fsPills = '';
+  if(t.foursomes.length>1){
+    fsPills='<div class="fs-selector">';
+    t.foursomes.forEach(g=>{
+      fsPills+=`<button class="fs-pill ${g.id===fid?'active':''}" onclick="selectFoursome('${g.id}')">${esc(g.name)}</button>`;
+    });
+    fsPills+='</div>';
+  }
+
+  let playerRows='';
+  f.players.forEach((p,idx)=>{
+    const s=p.scores[hole-1];
+    const r=holeResult(s.strokes,par,s);
+    const ptsColor = r.points>0?'var(--green)':r.points<0?'var(--red)':'var(--ink)';
+    const chipHTML = r.label?`<span class="chip chip-${r.cls==='alb'?'alb':r.cls}">${r.label}</span>`:'';
+    playerRows+=`
+    <div class="player-row" id="prow-${p.id}">
+      <div class="player-top">
+        <div style="font-weight:700;color:var(--navy)">${esc(p.name)}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${chipHTML}
+          <span style="font-weight:700;font-size:18px;color:${ptsColor}">
+            ${r.points>0?'+'+r.points:r.points||0}
+          </span>
+        </div>
+      </div>
+      <div class="score-grid">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#666;margin-bottom:4px">Strokes</div>
+          <div class="stroke-wrap">
+            <button class="stroke-btn" onclick="changeStrokes('${p.id}',-1)">−</button>
+            <input class="stroke-input" type="number" min="0" max="20"
+              value="${s.strokes||''}" placeholder="${par}"
+              oninput="setStrokes('${p.id}',this.value)"
+              id="si-${p.id}">
+            <button class="stroke-btn" onclick="changeStrokes('${p.id}',1)">+</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:#666;margin-bottom:4px">Shot Tracking</div>
+          <div class="tracking">
+            <button class="pill ${s.fairway?'on-fw':''}" onclick="toggleBool('${p.id}','fairway')">${I.target} FW</button>
+            <button class="pill ${s.gir?'on-gir':''}" onclick="toggleBool('${p.id}','gir')">${I.flag} GIR</button>
+            <button class="pill on-water${s.water?'':' '}" id="pill-water-${p.id}"
+              style="${s.water?'background:var(--blue);color:white;border-color:var(--blue)':''}"
+              onclick="cycleHazard('${p.id}','water')">${I.drop} Water${s.water?` ×${s.water}`:''}</button>
+            <button class="pill" id="pill-sand-${p.id}"
+              style="${s.sand?'background:#C9A961;color:white;border-color:#C9A961':''}"
+              onclick="cycleHazard('${p.id}','sand')">${I.mtn} Sand${s.sand?` ×${s.sand}`:''}</button>
+            <button class="pill" id="pill-ob-${p.id}"
+              style="${s.ob?'background:var(--red);color:white;border-color:var(--red)':''}"
+              onclick="cycleHazard('${p.id}','ob')">${I.wind} OB${s.ob?` ×${s.ob}`:''}</button>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  });
+
+  let progRows='';
+  f.players.forEach(p=>{
+    let holes='';
+    p.scores.forEach((s,i)=>{
+      const r=holeResult(s.strokes,t.pars[i],s);
+      const cls=s.strokes?(r.points>0?'pos':r.points<0?'neg':'zero'):'';
+      holes+=`<div class="prog-hole ${cls}" onclick="jumpHole(${i+1})">${i+1}</div>`;
+    });
+    progRows+=`<div class="prog-row"><div class="prog-name">${esc(p.name)}</div><div class="prog-holes">${holes}</div></div>`;
+  });
+
+  return `
+    ${fsPills}
+    <div id="hole-nav">
+      <button class="nav-btn" onclick="prevHole()" ${hole===1?'disabled':''}>${I.chevL}</button>
+      <div class="nav-center">
+        <div style="font-size:11px;text-transform:uppercase;letter-spacing:.1em;color:#888">Hole</div>
+        <div id="hole-num">${hole}</div>
+        <div style="font-size:12px;color:#666;margin-top:4px">Par ${par}</div>
+      </div>
+      <button class="nav-btn" onclick="nextHole()" ${hole===18?'disabled':''}>${I.chevR}</button>
+    </div>
+    <div class="card" style="margin-top:12px">
+      <div class="card-header">
+        <div class="serif" style="font-weight:700">${esc(f.name)} · Hole ${hole}</div>
+        <div style="font-size:13px">Par ${par}</div>
+      </div>
+      ${playerRows}
+    </div>
+    <div id="progress-wrap" style="margin-top:12px">
+      <div style="font-size:13px;font-weight:600;color:var(--navy);margin-bottom:8px">Round Progress</div>
+      ${progRows}
+    </div>`;
+}
+
+function attachScoringEvents(t){}
+
+function selectFoursome(fid){setView({...currentView,foursomeId:fid,hole:1});}
+function prevHole(){const h=currentView.hole||1;if(h>1)setView({...currentView,hole:h-1});}
+function nextHole(){const h=currentView.hole||1;if(h<18)setView({...currentView,hole:h+1});}
+function jumpHole(h){setView({...currentView,hole:h});}
+
+function getPlayerScore(t,fid,pid,holeIdx){
+  const f=t.foursomes.find(f=>f.id===fid);
+  const p=f?.players.find(p=>p.id===pid);
+  return p?.scores[holeIdx];
+}
+
+function patchScore(pid,patch){
+  const t=getTournament(currentView.tournamentId);
+  const fid=currentView.foursomeId||t.foursomes[0]?.id;
+  const holeIdx=(currentView.hole||1)-1;
+  mutateTournament(t.id,tour=>({
+    ...tour,
+    foursomes:tour.foursomes.map(f=>f.id!==fid?f:{
+      ...f,
+      players:f.players.map(p=>p.id!==pid?p:{
+        ...p,
+        scores:p.scores.map((s,i)=>i!==holeIdx?s:{...s,...patch})
+      })
+    })
+  }));
+  renderScoringPartial();
+}
+
+function renderScoringPartial(){
+  // Re-render just the tab content for performance
+  const t=getTournament(currentView.tournamentId);
+  const content=document.getElementById('tab-content');
+  if(content){content.innerHTML=buildScoring(t);}
+}
+
+function changeStrokes(pid,delta){
+  const t=getTournament(currentView.tournamentId);
+  const fid=currentView.foursomeId||t.foursomes[0]?.id;
+  const holeIdx=(currentView.hole||1)-1;
+  const f=t.foursomes.find(f=>f.id===fid);
+  const p=f?.players.find(p=>p.id===pid);
+  if(!p) return;
+  const cur=p.scores[holeIdx].strokes||0;
+  patchScore(pid,{strokes:Math.max(0,Math.min(20,cur+delta))});
+}
+
+function setStrokes(pid,val){
+  const v=parseInt(val)||0;
+  patchScore(pid,{strokes:Math.max(0,Math.min(20,v))});
+}
+
+function toggleBool(pid,field){
+  const t=getTournament(currentView.tournamentId);
+  const fid=currentView.foursomeId||t.foursomes[0]?.id;
+  const holeIdx=(currentView.hole||1)-1;
+  const f=t.foursomes.find(f=>f.id===fid);
+  const p=f?.players.find(p=>p.id===pid);
+  if(!p) return;
+  patchScore(pid,{[field]:!p.scores[holeIdx][field]});
+}
+
+function cycleHazard(pid,field){
+  const t=getTournament(currentView.tournamentId);
+  const fid=currentView.foursomeId||t.foursomes[0]?.id;
+  const holeIdx=(currentView.hole||1)-1;
+  const f=t.foursomes.find(f=>f.id===fid);
+  const p=f?.players.find(p=>p.id===pid);
+  if(!p) return;
+  const cur=p.scores[holeIdx][field]||0;
+  patchScore(pid,{[field]:(cur+1)%4});
+}
+
+// ─── SETUP ────────────────────────────────────────────────────────────────────
+function buildSetup(t) {
+  const parCells = t.pars.map((p,i)=>`
+    <div class="par-cell">
+      <label>H${i+1}</label>
+      <input type="number" min="3" max="6" value="${p}" data-par-idx="${i}" class="par-input">
+    </div>`).join('');
+
+  const f9=t.pars.slice(0,9).reduce((a,b)=>a+b,0);
+  const b9=t.pars.slice(9).reduce((a,b)=>a+b,0);
+  const tot=t.pars.reduce((a,b)=>a+b,0);
+
+  let fsHTML='';
+  t.foursomes.forEach((f,fi)=>{
+    let playerRows=f.players.map((p,pi)=>`
+      <div class="player-edit">
+        <input type="text" value="${esc(p.name)}" placeholder="Player name" class="player-name-input" data-fid="${f.id}" data-pid="${p.id}">
+        ${f.players.length>1?`<button class="btn-icon" onclick="removePlayer('${f.id}','${p.id}')">${I.trash}</button>`:''}
+      </div>`).join('');
+    fsHTML+=`<div class="fs-editor">
+      <div class="fs-head">
+        ${I.users}
+        <input type="text" class="fs-name-input" value="${esc(f.name)}" data-fid="${f.id}">
+        ${t.foursomes.length>1?`<button style="background:none;border:none;color:rgba(255,255,255,.8);cursor:pointer;padding:4px" onclick="removeFoursome('${f.id}')">${I.x}</button>`:''}
+      </div>
+      <div class="fs-body">
+        ${playerRows}
+        ${f.players.length<4?`<button class="add-player-btn" onclick="addPlayer('${f.id}')">${I.plus} Add Player (${f.players.length}/4)</button>`:''}
+      </div>
+    </div>`;
+  });
+
+  return `<div class="gap-v">
+    <div class="card card-body">
+      <div class="section-title serif" style="margin-bottom:12px">Tournament Details</div>
+      <div class="field-group">
+        <div class="field"><label>Name</label><input type="text" value="${esc(t.name)}" id="t-name"></div>
+        <div class="field"><label>Course</label><input type="text" value="${esc(t.course)}" id="t-course" placeholder="Pebble Beach"></div>
+        <div class="field"><label>Date</label><input type="date" value="${t.date}" id="t-date"></div>
+      </div>
+    </div>
+
+    <div class="card card-body">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="section-title serif">Course Pars</div>
+        <div style="font-size:13px;color:#666">F9: ${f9} · B9: ${b9} · Total: ${tot}</div>
+      </div>
+      <div class="pars-grid">${parCells}</div>
+    </div>
+
+    <div>
+      <div class="section-head">
+        <div class="section-title serif">Foursomes &amp; Players</div>
+        <button class="btn btn-accent btn-sm" onclick="addFoursome()">${I.plus} Add Group</button>
+      </div>
+      ${fsHTML}
+    </div>
+
+    <div style="display:flex;justify-content:space-between;align-items:center;padding-top:8px">
+      <button class="btn-danger" onclick="deleteTournamentFromSetup()">${I.trash} Delete Tournament</button>
+      <button class="btn btn-primary" onclick="setTab('scoring')">Start Scoring ${I.chevR}</button>
+    </div>
+  </div>`;
+}
+
+function attachSetupEvents(t) {
+  // Tournament fields
+  const nameEl=document.getElementById('t-name');
+  const courseEl=document.getElementById('t-course');
+  const dateEl=document.getElementById('t-date');
+  if(nameEl) nameEl.oninput=()=>updateTField('name',nameEl.value);
+  if(courseEl) courseEl.oninput=()=>updateTField('course',courseEl.value);
+  if(dateEl) dateEl.oninput=()=>updateTField('date',dateEl.value);
+
+  // Pars
+  document.querySelectorAll('.par-input').forEach(el=>{
+    el.oninput=()=>{
+      const idx=parseInt(el.dataset.parIdx);
+      const val=Math.max(3,Math.min(6,parseInt(el.value)||4));
+      mutateTournament(t.id,tour=>{
+        const pars=[...tour.pars]; pars[idx]=val; return {...tour,pars};
+      });
+      updateParTotals(t.id);
+    };
+  });
+
+  // Foursome names
+  document.querySelectorAll('.fs-name-input').forEach(el=>{
+    el.oninput=()=>{
+      const fid=el.dataset.fid;
+      mutateTournament(t.id,tour=>({
+        ...tour,foursomes:tour.foursomes.map(f=>f.id===fid?{...f,name:el.value}:f)
+      }));
+    };
+  });
+
+  // Player names
+  document.querySelectorAll('.player-name-input').forEach(el=>{
+    el.oninput=()=>{
+      const {fid,pid}=el.dataset;
+      mutateTournament(t.id,tour=>({
+        ...tour,foursomes:tour.foursomes.map(f=>f.id!==fid?f:{
+          ...f,players:f.players.map(p=>p.id===pid?{...p,name:el.value}:p)
+        })
+      }));
+    };
+  });
+}
+
+function updateTField(field,val){
+  mutateTournament(currentView.tournamentId,t=>({...t,[field]:val}));
+  if(field==='name'||field==='course'||field==='date'){
+    const t=getTournament(currentView.tournamentId);
+    document.getElementById('header-title').textContent=t.name;
+    document.getElementById('header-sub').textContent=`${t.course||'Course TBD'} · ${t.date}`;
+  }
+}
+
+function updateParTotals(tid){
+  const t=getTournament(tid);
+  // Just update display without full re-render
+}
+
+function addFoursome(){
+  const t=getTournament(currentView.tournamentId);
+  mutateTournament(t.id,tour=>({
+    ...tour,foursomes:[...tour.foursomes,makeFoursome(`Group ${tour.foursomes.length+1}`)]
+  }));
+  setTab('setup');
+}
+
+function removeFoursome(fid){
+  if(!confirm('Remove this group?')) return;
+  mutateTournament(currentView.tournamentId,t=>({
+    ...t,foursomes:t.foursomes.filter(f=>f.id!==fid)
+  }));
+  setTab('setup');
+}
+
+function addPlayer(fid){
+  const t=getTournament(currentView.tournamentId);
+  const f=t.foursomes.find(f=>f.id===fid);
+  if(!f||f.players.length>=4) return;
+  mutateTournament(t.id,tour=>({
+    ...tour,foursomes:tour.foursomes.map(f=>f.id!==fid?f:{
+      ...f,players:[...f.players,makePlayer(`Player ${f.players.length+1}`)]
+    })
+  }));
+  setTab('setup');
+}
+
+function removePlayer(fid,pid){
+  if(!confirm('Remove this player?')) return;
+  mutateTournament(currentView.tournamentId,t=>({
+    ...t,foursomes:t.foursomes.map(f=>f.id!==fid?f:{
+      ...f,players:f.players.filter(p=>p.id!==pid)
+    })
+  }));
+  setTab('setup');
+}
+
+function deleteTournamentFromSetup(){
+  const t=getTournament(currentView.tournamentId);
+  if(!confirm(`Delete "${t.name}"? This cannot be undone.`)) return;
+  deleteTournament(t.id);
+}
+
+// ─── Tournament CRUD ──────────────────────────────────────────────────────────
+function createTournament(){
+  const t=makeTournament('Tournament '+(state.tournaments.length+1));
+  state.tournaments.push(t);
+  saveState();
+  setView({screen:'tournament',tournamentId:t.id,tab:'setup',hole:1});
+}
+
+function openTournament(id){
+  setView({screen:'tournament',tournamentId:id,tab:'leaderboard',hole:1});
+}
+
+function deleteTournament(id){
+  const t=state.tournaments.find(t=>t.id===id);
+  if(!t) return;
+  if(!confirm(`Delete "${t.name}"?`)) return;
+  state.tournaments=state.tournaments.filter(t=>t.id!==id);
+  saveState();
+  goHome();
+}
+
+// ─── Utility ──────────────────────────────────────────────────────────────────
+function esc(str){ return String(str||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ─── Boot ─────────────────────────────────────────────────────────────────────
+loadState();
+render();
+</script>
+</body>
+</html>
